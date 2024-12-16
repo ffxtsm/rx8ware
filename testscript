@@ -4,6 +4,8 @@ local LockDistance = 100 -- Max distance to detect targets
 local Accuracy = 0.1 -- Accuracy setting (lower is more accurate, higher is more loose)
 local Smoothing = 0.3 -- Smoothing for aim transition (0 = instant, 1 = very smooth)
 local LockType = "Closest" -- Lock type: "Closest" or "Selected"
+local TargetPart = "Head" -- Default target part: "Head", "Torso", "HumanoidRootPart", etc.
+local LockMode = "Mouse" -- Lock mode: "Mouse" or "Camera"
 
 --// Kavo UI Setup //--
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
@@ -37,21 +39,34 @@ Section:NewDropdown("Lock Type", "Choose the type of target to lock onto", {"Clo
     print("Lock type set to: " .. option)
 end)
 
+Section:NewDropdown("Lock Mode", "Choose between Mouse or Camera lock", {"Mouse", "Camera"}, function(option)
+    LockMode = option
+    print("Lock mode set to: " .. option)
+end)
+
+Section:NewDropdown("Target Part", "Choose the part of the body to aim at", {"Head", "Torso", "HumanoidRootPart"}, function(option)
+    TargetPart = option
+    print("Target part set to: " .. option)
+end)
+
 --// Variables //--
 local AimlockEnabled = false
 local SelectedTarget = nil -- This will be used if the "Selected" lock type is chosen
+local Mouse = game.Players.LocalPlayer:GetMouse()
 
 --// Target Lock Functions //--
+
+-- Function to get the closest target
 local function GetClosestTarget()
     local closestTarget = nil
     local shortestDistance = LockDistance
     for _, target in pairs(game.Workspace:GetChildren()) do
         if target:IsA("Model") and target:FindFirstChild("Humanoid") then
-            local humanoidRootPart = target:FindFirstChild("HumanoidRootPart")
-            if humanoidRootPart then
-                local distance = (humanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            local part = target:FindFirstChild(TargetPart)
+            if part then
+                local distance = (part.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                 if distance < shortestDistance then
-                    closestTarget = humanoidRootPart
+                    closestTarget = part
                     shortestDistance = distance
                 end
             end
@@ -60,11 +75,24 @@ local function GetClosestTarget()
     return closestTarget
 end
 
-local function LockOnSelectedTarget()
-    if SelectedTarget then
-        return SelectedTarget
+-- Function to lock the mouse position to the target part
+local function LockMouseToTarget(target)
+    if target then
+        local targetPosition = target.Position
+        Mouse.Hit = CFrame.new(targetPosition)
     end
-    return nil
+end
+
+-- Function to smoothly move the camera towards the target part
+local function SmoothCameraMove(target)
+    if target then
+        local targetPosition = target.Position
+        local camera = game.Workspace.CurrentCamera
+        local cameraPosition = camera.CFrame.Position
+        local direction = (targetPosition - cameraPosition).Unit
+        local newCFrame = CFrame.new(cameraPosition, cameraPosition + direction)
+        game.Workspace.CurrentCamera.CFrame = camera.CFrame:Lerp(newCFrame, Smoothing)
+    end
 end
 
 --// Smooth Aiming Function //--
@@ -81,24 +109,15 @@ game:GetService("RunService").RenderStepped:Connect(function()
         if LockType == "Closest" then
             targetToLock = GetClosestTarget()
         elseif LockType == "Selected" then
-            targetToLock = LockOnSelectedTarget()
+            targetToLock = SelectedTarget
         end
 
         -- If a target is found, aim at it
         if targetToLock then
-            local targetPosition = targetToLock.Position
-            local playerHead = game.Players.LocalPlayer.Character:FindFirstChild("Head")
-            if playerHead then
-                -- Calculate the direction to aim at the target
-                local directionToTarget = (targetPosition - playerHead.Position).Unit
-                local maxDeviation = Accuracy * math.random() - (Accuracy / 2)
-                
-                -- Apply the accuracy deviation (fuzziness)
-                directionToTarget = directionToTarget + Vector3.new(maxDeviation, maxDeviation, maxDeviation)
-                
-                -- Smoothly transition the aim to the target
-                local newCFrame = CFrame.lookAt(playerHead.Position, playerHead.Position + directionToTarget)
-                game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(SmoothAim(game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame, newCFrame, Smoothing))
+            if LockMode == "Mouse" then
+                LockMouseToTarget(targetToLock)
+            elseif LockMode == "Camera" then
+                SmoothCameraMove(targetToLock)
             end
         end
     end
