@@ -1,0 +1,132 @@
+--// CONFIGURATION //--
+local KeyToToggleAimlock = Enum.KeyCode.Q -- Key to toggle aimlock
+local LockDistance = 100 -- Max distance to detect targets
+local Accuracy = 0.1 -- Accuracy setting (lower is more accurate, higher is more loose)
+local Smoothing = 0.3 -- Smoothing for aim transition (0 = instant, 1 = very smooth)
+local LockType = "Closest" -- Lock type: "Closest" or "Selected"
+
+--// Kavo UI Setup //--
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Aimlock System", "DarkTheme")
+
+local Tab = Window:NewTab("Settings")
+local Section = Tab:NewSection("Aimlock Controls")
+
+--// UI Controls //--
+Section:NewButton("Toggle Aimlock", "Activate or Deactivate Aimlock", function()
+    AimlockEnabled = not AimlockEnabled
+    if AimlockEnabled then
+        print("Aimlock Activated!")
+    else
+        print("Aimlock Deactivated!")
+    end
+end)
+
+Section:NewSlider("Accuracy", "Set the accuracy of Aimlock", 0, 1, Accuracy, function(value)
+    Accuracy = value
+    print("Accuracy set to: " .. tostring(value))
+end)
+
+Section:NewSlider("Smoothing", "Set the smoothing for the transition", 0, 1, Smoothing, function(value)
+    Smoothing = value
+    print("Smoothing set to: " .. tostring(value))
+end)
+
+Section:NewDropdown("Lock Type", "Choose the type of target to lock onto", {"Closest", "Selected"}, function(option)
+    LockType = option
+    print("Lock type set to: " .. option)
+end)
+
+--// Variables //--
+local AimlockEnabled = false
+local SelectedTarget = nil -- This will be used if the "Selected" lock type is chosen
+
+--// Target Lock Functions //--
+local function GetClosestTarget()
+    local closestTarget = nil
+    local shortestDistance = LockDistance
+    for _, target in pairs(game.Workspace:GetChildren()) do
+        if target:IsA("Model") and target:FindFirstChild("Humanoid") then
+            local humanoidRootPart = target:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                local distance = (humanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                if distance < shortestDistance then
+                    closestTarget = humanoidRootPart
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    return closestTarget
+end
+
+local function LockOnSelectedTarget()
+    if SelectedTarget then
+        return SelectedTarget
+    end
+    return nil
+end
+
+--// Smooth Aiming Function //--
+local function SmoothAim(currentPosition, targetPosition, smoothingFactor)
+    return currentPosition:Lerp(targetPosition, smoothingFactor)
+end
+
+--// Aimlock Logic //--
+game:GetService("RunService").RenderStepped:Connect(function()
+    if AimlockEnabled then
+        local targetToLock = nil
+        
+        -- Choose target based on LockType
+        if LockType == "Closest" then
+            targetToLock = GetClosestTarget()
+        elseif LockType == "Selected" then
+            targetToLock = LockOnSelectedTarget()
+        end
+
+        -- If a target is found, aim at it
+        if targetToLock then
+            local targetPosition = targetToLock.Position
+            local playerHead = game.Players.LocalPlayer.Character:FindFirstChild("Head")
+            if playerHead then
+                -- Calculate the direction to aim at the target
+                local directionToTarget = (targetPosition - playerHead.Position).Unit
+                local maxDeviation = Accuracy * math.random() - (Accuracy / 2)
+                
+                -- Apply the accuracy deviation (fuzziness)
+                directionToTarget = directionToTarget + Vector3.new(maxDeviation, maxDeviation, maxDeviation)
+                
+                -- Smoothly transition the aim to the target
+                local newCFrame = CFrame.lookAt(playerHead.Position, playerHead.Position + directionToTarget)
+                game.Players.LocalPlayer.Character:SetPrimaryPartCFrame(SmoothAim(game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame, newCFrame, Smoothing))
+            end
+        end
+    end
+end)
+
+--// User Input for Selecting a Target (If Needed) //--
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and LockType == "Selected" then
+        local mouse = game.Players.LocalPlayer:GetMouse()
+        local hit = mouse.Hit.p
+        -- Find the closest NPC or player when clicked to lock as "Selected"
+        local closestTarget = GetClosestTarget()
+        if closestTarget then
+            SelectedTarget = closestTarget
+            print("Target selected: " .. tostring(closestTarget))
+        end
+    end
+end)
+
+--// Toggle Aimlock Key Bind //--
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == KeyToToggleAimlock then
+        AimlockEnabled = not AimlockEnabled
+        if AimlockEnabled then
+            print("Aimlock Activated!")
+        else
+            print("Aimlock Deactivated!")
+        end
+    end
+end)
