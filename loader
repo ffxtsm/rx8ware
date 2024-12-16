@@ -1,6 +1,6 @@
---// CONFIGURATION //-- 
-local Key = "djsigma" -- Change this to your desired key
-local ScriptURL = "https://raw.githubusercontent.com/ffxtsm/rx8ware/refs/heads/main/loader" -- Replace with your script URL
+--// CONFIGURATION //--
+local Key = "YourSecretKeyHere" -- Change this to your desired key
+local ScriptURL = "https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt" -- Replace with the OwlHub URL or your own script
 
 --// SCRIPT STARTS HERE //--
 
@@ -19,9 +19,8 @@ local function LoadMainScript()
     -- Close the Key UI
     Library:ToggleUI()
     
-    -- Attempt to load the script from the URL
+    -- Load the script from the provided URL
     local success, err = pcall(function()
-        print("Loading main script from:", ScriptURL) -- Debug URL
         loadstring(game:HttpGet(ScriptURL, true))()
     end)
     
@@ -33,11 +32,12 @@ end
 
 -- TextBox to Enter Key
 KeySection:NewTextBox("Enter Key", "Type the key here", function(input)
-    print("User Input:", input) -- Debug user input
     if input == Key then
+        -- If Key is Correct
         print("Key is Correct!")
         LoadMainScript()
     else
+        -- If Key is Incorrect
         print("Incorrect Key")
         KeySection:NewLabel("Invalid Key. Try Again!")
     end
