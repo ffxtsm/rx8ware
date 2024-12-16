@@ -1,5 +1,5 @@
 --// CONFIGURATION //--
-local Key = "RcUqNOsY9AuCvbJiHonE" -- Change this to your desired key
+local Key = "djsigma" -- Change this to your desired key
 local ScriptURL = "https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt" -- Replace with the URL of your script
 
 --// SCRIPT STARTS HERE //--
