@@ -14,6 +14,9 @@ local KeyWindow = Library.CreateLib("Key System", "DarkTheme")
 local KeyTab = KeyWindow:NewTab("Authentication")
 local KeySection = KeyTab:NewSection("Enter Key")
 
+-- State Variable to Ensure Key System Doesn't Reopen
+local KeyValidated = false
+
 -- Function to Load Main Script
 local function LoadMainScript()
     -- Close the Key UI
@@ -32,9 +35,14 @@ end
 
 -- TextBox to Enter Key
 KeySection:NewTextBox("Enter Key", "Type the key here", function(input)
+    if KeyValidated then
+        return -- Prevent re-checking after validation
+    end
+
     if input == Key then
         -- If Key is Correct
         print("Key is Correct!")
+        KeyValidated = true -- Mark the key as validated
         LoadMainScript()
     else
         -- If Key is Incorrect
