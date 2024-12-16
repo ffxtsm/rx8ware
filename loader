@@ -1,0 +1,44 @@
+--// CONFIGURATION //--
+local Key = "sexnigga" -- Change this to your desired key
+local ScriptURL = "https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt" -- Replace with the URL of your script
+
+--// SCRIPT STARTS HERE //--
+
+-- Load the Kavo UI Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+
+-- Create the Key System UI Window
+local KeyWindow = Library.CreateLib("Key System", "DarkTheme")
+
+-- Create Tab and Section for Key Input
+local KeyTab = KeyWindow:NewTab("Authentication")
+local KeySection = KeyTab:NewSection("Enter Key")
+
+-- Function to Load Main Script
+local function LoadMainScript()
+    -- Close the Key UI
+    Library:ToggleUI()
+    
+    -- Load the script from the provided URL
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(ScriptURL, true))()
+    end)
+    
+    -- Error handling if the script fails to load
+    if not success then
+        warn("Failed to load the main script: " .. err)
+    end
+end
+
+-- TextBox to Enter Key
+KeySection:NewTextBox("Enter Key", "Type the key here", function(input)
+    if input == Key then
+        -- If Key is Correct
+        print("Key is Correct!")
+        LoadMainScript()
+    else
+        -- If Key is Incorrect
+        print("Incorrect Key")
+        KeySection:NewLabel("Invalid Key. Try Again!")
+    end
+end)
